@@ -44,6 +44,7 @@ class SudutJarakDialog(QtWidgets.QDialog, FORM_CLASS):
         # http://qt-project.org/doc/qt-4.8/designer-using-a-ui-file.html
         # #widgets-and-dialogs-with-auto-connect
         self.setupUi(self)
+        self.iface = iface
         self.plot.clicked.connect(self.gambar_plot)
 
     def gambar_plot(self):
@@ -51,11 +52,14 @@ class SudutJarakDialog(QtWidgets.QDialog, FORM_CLASS):
         # memanggil isi dari Line Edit pada kolom X dan
         # menyimpannya pada variabel self.nilai_x
         # sekaligus mengkonversinya menjadi angka
-        x = int(self.input_x.text())
-        y = int(self.input_y.text())
-        # cetak isi nilai X
-        print(x,y)
-        self.buat_titik(x,y)
+        try:
+            x = int(self.input_x.text())
+            y = int(self.input_y.text())
+            # cetak isi nilai X
+            print(x,y)
+            self.buat_titik(x,y)
+        except Exception as e:
+            print(e)
     
     def buat_titik(self, x, y):
         """ buat titik di koordinat masukan """
@@ -71,4 +75,6 @@ class SudutJarakDialog(QtWidgets.QDialog, FORM_CLASS):
         # menambahkan fitur pada layer
         layer.dataProvider().addFeatures([feature])
         layer.updateExtents()
+
+        self.iface.actionZoomToLayer().trigger()
 
