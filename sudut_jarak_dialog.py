@@ -78,7 +78,7 @@ class SudutJarakDialog(QtWidgets.QDialog, FORM_CLASS):
         
         # ini comment 2
 
-        print("woy")
+        print("woy","sandy")
 
         self.iface.actionZoomToLayer().trigger()
 
