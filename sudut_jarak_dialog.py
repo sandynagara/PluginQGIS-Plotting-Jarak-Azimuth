@@ -76,7 +76,7 @@ class SudutJarakDialog(QtWidgets.QDialog, FORM_CLASS):
         layer.dataProvider().addFeatures([feature])
         layer.updateExtents()
         
-        # ini comment
+        # ini comment 2
 
         print("woy")
 
