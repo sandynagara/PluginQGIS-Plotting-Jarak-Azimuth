@@ -75,6 +75,8 @@ class SudutJarakDialog(QtWidgets.QDialog, FORM_CLASS):
         # menambahkan fitur pada layer
         layer.dataProvider().addFeatures([feature])
         layer.updateExtents()
+        
+        # ini comment
 
         self.iface.actionZoomToLayer().trigger()
 
