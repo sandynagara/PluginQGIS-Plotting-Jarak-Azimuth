@@ -71,7 +71,7 @@ class SudutJarakDialog(QtWidgets.QDialog, FORM_CLASS):
         QgsProject.instance().addMapLayer(layer)
         # memberi geometri pada fitur baru
         feature = QgsFeature()
-     
+        feature.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(x, y)))
         # menambahkan fitur pada layer
         layer.dataProvider().addFeatures([feature])
         layer.updateExtents()
