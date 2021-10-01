@@ -77,7 +77,7 @@ class SudutJarakDialog(QtWidgets.QDialog, FORM_CLASS):
         layer.updateExtents()
         
         # ini comment 2
-
+        print("testing")
 
         self.iface.actionZoomToLayer().trigger()
 
