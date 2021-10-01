@@ -78,6 +78,8 @@ class SudutJarakDialog(QtWidgets.QDialog, FORM_CLASS):
         
         # ini comment
 
+        print("woy")
+
         self.iface.actionZoomToLayer().trigger()
 
 
