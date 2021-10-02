@@ -76,12 +76,14 @@ class SudutJarakDialog(QtWidgets.QDialog, FORM_CLASS):
         try:
             az = float(self.input_az.text())
             jarak = float(self.input_jarak.text())
+            while az > 360:
+                az = az - 360
+            print(az)
             self.x = self.x + jarak*math.sin(az * math.pi/180)
             self.y = self.y + jarak*math.cos(az * math.pi/180)
-            print(math.sin(az),"sin",math.cos(az),"cos")
             self.buat_titik()
         except Exception as e:
-            print(e)
+            print("azimuth dan/atau jarak yang anda masukkan berupa huruf")
     
     def buat_titik(self):
         """ buat titik di koordinat masukan """
@@ -93,15 +95,8 @@ class SudutJarakDialog(QtWidgets.QDialog, FORM_CLASS):
         feature = QgsFeature()
         feature.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(self.x, self.y)))
         # menambahkan fitur pada layer
-        print(self.x,self.y,"buat titik")
         self.layer.dataProvider().addFeatures([feature])
         self.layer.updateExtents()
-       
-
-    
-        print("testing")   
-     
-
         self.iface.actionZoomToLayer().trigger()
 
 
