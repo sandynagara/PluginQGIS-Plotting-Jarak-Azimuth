@@ -46,7 +46,8 @@ class SudutJarakDialog(QtWidgets.QDialog, FORM_CLASS):
         # #widgets-and-dialogs-with-auto-connect
         self.setupUi(self)
         self.iface = iface
-        self.layer = self.buat_layer()
+        self.layerTitik = self.buat_layer("Plot Titik","Point")
+        self.layerGaris = self.buat_layer("Plot Garis","LineString")
         self.proyeksi = "32749"
         self.x = ""
         self.y = ""
@@ -69,9 +70,9 @@ class SudutJarakDialog(QtWidgets.QDialog, FORM_CLASS):
         except Exception as e:
             print(e)
 
-    def buat_layer(self):
+    def buat_layer(self ,namaLayer,type):
         #untuk buat layers
-        layer = QgsVectorLayer(f"Point?crs=EPSG:32749", "Plot Titik", "memory")
+        layer = QgsVectorLayer(f"{type}?crs=EPSG:32749",namaLayer, "memory")
         QgsProject.instance().addMapLayer(layer)
         return layer
     
@@ -80,6 +81,9 @@ class SudutJarakDialog(QtWidgets.QDialog, FORM_CLASS):
             #ini untuk mendapatkan nilai azimut(az) dan jarak(jarak)
             az = float(self.input_az.text())
             jarak = float(self.input_jarak.text())
+            #untuk memasukkan nilai x dan y awal atau sebelumnya
+            x = self.x
+            y = self.y
             #untuk mengcheck apakah nilai azimuth lebih dari 360 derajat
             while az > 360:
                 az = az - 360
@@ -87,20 +91,29 @@ class SudutJarakDialog(QtWidgets.QDialog, FORM_CLASS):
             self.x = self.x + jarak*math.sin(az * math.pi/180)
             self.y = self.y + jarak*math.cos(az * math.pi/180)
             self.buat_titik()
+            self.buat_garis(x,y)
         except Exception as e:
-            print("azimuth dan/atau jarak yang anda masukkan berupa huruf")
+            print(e)
+
+    def buat_garis(self,x,y):
+        # membuat garis pada layer
+        featureGaris = QgsFeature()
+        featureGaris.setGeometry(QgsGeometry.fromPolylineXY([QgsPointXY(x,y),QgsPointXY(self.x, self.y)]))
+        self.layerGaris.dataProvider().addFeatures([featureGaris])
+        self.layerGaris.updateExtents()
     
     def buat_titik(self):
         """ buat titik di koordinat masukan """
-        # cek masukan
         # membuat layer pada memory
         # anggap bahwa pengguna hanya di sekitar yogya (zona EPSG:32749)
         # memberi geometri pada fitur baru
+        # Memberi fitur titik
         feature = QgsFeature()
         feature.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(self.x, self.y)))
         # menambahkan fitur pada layer
-        self.layer.dataProvider().addFeatures([feature])
-        self.layer.updateExtents()
+        self.layerTitik.dataProvider().addFeatures([feature])
+        self.layerTitik.updateExtents()
+
         self.iface.actionZoomToLayer().trigger()
 
 
