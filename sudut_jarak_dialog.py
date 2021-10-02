@@ -18,7 +18,7 @@
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
  *   (at your option) any later version.                                   *
- *                                                                         *
+ *                                                                         * 
  ***************************************************************************/
 """
 
@@ -50,19 +50,22 @@ class SudutJarakDialog(QtWidgets.QDialog, FORM_CLASS):
         self.proyeksi = "32749"
         self.x = ""
         self.y = ""
-        self.plot.clicked.connect(self.gambar_plot )
-        self.plot.clicked.connect(self.hitung_azimuth_jarak )
-
+        self.pertama = True
+        self.plot.clicked.connect(self.gambar_plot)
+        
     def gambar_plot(self):
         """ Lakukan sesuatu ketika tombol ditekan """
         # memanggil isi dari Line Edit pada kolom X dan
         # menyimpannya pada variabel self.nilai_x
         # sekaligus mengkonversinya menjadi angka
         try:
-            self.x = float(self.input_x.text())
-            self.y = float(self.input_y.text())
             # cetak isi nilai X
-            self.buat_titik()
+            if self.pertama:
+                self.pertama = False
+                self.x = float(self.input_x.text())
+                self.y = float(self.input_y.text())
+                self.buat_titik()
+            self.hitung_azimuth_jarak()
         except Exception as e:
             print(e)
 
@@ -74,11 +77,13 @@ class SudutJarakDialog(QtWidgets.QDialog, FORM_CLASS):
     
     def hitung_azimuth_jarak(self):
         try:
+            #ini untuk mendapatkan nilai azimut(az) dan jarak(jarak)
             az = float(self.input_az.text())
             jarak = float(self.input_jarak.text())
+            #untuk mengcheck apakah nilai azimuth lebih dari 360 derajat
             while az > 360:
                 az = az - 360
-            print(az)
+            #Menghitung nilai koordinat
             self.x = self.x + jarak*math.sin(az * math.pi/180)
             self.y = self.y + jarak*math.cos(az * math.pi/180)
             self.buat_titik()
@@ -90,7 +95,6 @@ class SudutJarakDialog(QtWidgets.QDialog, FORM_CLASS):
         # cek masukan
         # membuat layer pada memory
         # anggap bahwa pengguna hanya di sekitar yogya (zona EPSG:32749)
-       
         # memberi geometri pada fitur baru
         feature = QgsFeature()
         feature.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(self.x, self.y)))
