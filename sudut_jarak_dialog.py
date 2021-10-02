@@ -22,6 +22,7 @@
  ***************************************************************************/
 """
 
+import math
 import os
 
 from qgis.PyQt import uic
@@ -29,7 +30,7 @@ from qgis.PyQt import QtWidgets
 from qgis.core import QgsVectorLayer, QgsProject, QgsFeature, QgsGeometry,QgsPointXY
 from qgis.utils import iface
 
-
+from math import *
 # This loads your .ui file so that PyQt can populate your plugin with the elements from Qt Designer
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'sudut_jarak_dialog_base.ui'))
@@ -45,7 +46,12 @@ class SudutJarakDialog(QtWidgets.QDialog, FORM_CLASS):
         # #widgets-and-dialogs-with-auto-connect
         self.setupUi(self)
         self.iface = iface
-        self.plot.clicked.connect(self.gambar_plot)
+        self.layer = self.buat_layer()
+        self.proyeksi = "32749"
+        self.x = ""
+        self.y = ""
+        self.plot.clicked.connect(self.gambar_plot )
+        self.plot.clicked.connect(self.hitung_azimuth_jarak )
 
     def gambar_plot(self):
         """ Lakukan sesuatu ketika tombol ditekan """
@@ -53,28 +59,43 @@ class SudutJarakDialog(QtWidgets.QDialog, FORM_CLASS):
         # menyimpannya pada variabel self.nilai_x
         # sekaligus mengkonversinya menjadi angka
         try:
-            x = int(self.input_x.text())
-            y = int(self.input_y.text())
+            self.x = float(self.input_x.text())
+            self.y = float(self.input_y.text())
             # cetak isi nilai X
-            print(x,y)
-            self.buat_titik(x,y)
+            self.buat_titik()
+        except Exception as e:
+            print(e)
+
+    def buat_layer(self):
+        #untuk buat layers
+        layer = QgsVectorLayer(f"Point?crs=EPSG:32749", "Plot Titik", "memory")
+        QgsProject.instance().addMapLayer(layer)
+        return layer
+    
+    def hitung_azimuth_jarak(self):
+        try:
+            az = float(self.input_az.text())
+            jarak = float(self.input_jarak.text())
+            self.x = self.x + jarak*math.sin(az * math.pi/180)
+            self.y = self.y + jarak*math.cos(az * math.pi/180)
+            print(math.sin(az),"sin",math.cos(az),"cos")
+            self.buat_titik()
         except Exception as e:
             print(e)
     
-    def buat_titik(self, x, y):
+    def buat_titik(self):
         """ buat titik di koordinat masukan """
         # cek masukan
-        print(x, y)
         # membuat layer pada memory
         # anggap bahwa pengguna hanya di sekitar yogya (zona EPSG:32749)
-        layer = QgsVectorLayer(f"Point?crs=EPSG:32749", "Plot Titik", "memory")
-        QgsProject.instance().addMapLayer(layer)
+       
         # memberi geometri pada fitur baru
         feature = QgsFeature()
-        feature.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(x, y)))
+        feature.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(self.x, self.y)))
         # menambahkan fitur pada layer
-        layer.dataProvider().addFeatures([feature])
-        layer.updateExtents()
+        print(self.x,self.y,"buat titik")
+        self.layer.dataProvider().addFeatures([feature])
+        self.layer.updateExtents()
     
         print("testing")   
      

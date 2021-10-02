@@ -164,7 +164,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QLineEdit" name="Input_az"/>
+        <widget class="QLineEdit" name="input_az"/>
        </item>
       </layout>
      </item>
@@ -191,7 +191,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QLineEdit" name="Input_jarak"/>
+        <widget class="QLineEdit" name="input_jarak"/>
        </item>
       </layout>
      </item>
