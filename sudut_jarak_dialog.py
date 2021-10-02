@@ -96,9 +96,13 @@ class SudutJarakDialog(QtWidgets.QDialog, FORM_CLASS):
         print(self.x,self.y,"buat titik")
         self.layer.dataProvider().addFeatures([feature])
         self.layer.updateExtents()
+        layer.dataProvider().addFeatures([feature])
+        layer.updateExtents()
+
     
         print("testing")   
      
+
         self.iface.actionZoomToLayer().trigger()
 
 
