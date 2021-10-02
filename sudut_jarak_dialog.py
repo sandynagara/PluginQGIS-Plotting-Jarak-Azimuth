@@ -79,6 +79,7 @@ class SudutJarakDialog(QtWidgets.QDialog, FORM_CLASS):
             self.x = self.x + jarak*math.sin(az * math.pi/180)
             self.y = self.y + jarak*math.cos(az * math.pi/180)
             print(math.sin(az),"sin",math.cos(az),"cos")
+            print ("ini fauzan")
             self.buat_titik()
         except Exception as e:
             print(e)
