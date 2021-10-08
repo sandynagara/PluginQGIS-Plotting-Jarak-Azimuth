@@ -73,24 +73,13 @@ class SudutJarakDialog(QtWidgets.QDialog, FORM_CLASS):
         self.input_az.setEnabled(False)
         self.input_jarak.setEnabled(False)
         self.check_garis.setEnabled(False)
+
     
     def gambar_plot(self):
         """ Lakukan sesuatu ketika tombol ditekan """
         # memanggil isi dari Line Edit pada kolom X dan
         # menyimpannya pada variabel self.nilai_x
         # sekaligus mengkonversinya menjadi angka
-
-        if self.pertamaPoint:
-            self.layerTitik = self.buat_layer("Plot Titik","Point")
-            self.pertamaPoint = False
-
-        if self.pertamaLine:
-            if self.check_garis.isChecked():
-                self.layerGaris = self.buat_layer("Plot Garis","LineString")
-                self.pertamaLine = False
-
-        # widget = iface.messageBar().createMessage("Missing Layers", "Show Me")
-        # iface.messageBar().pushWidget(widget, Qgis.Warning)
 
         try:
             # cetak isi nilai X
@@ -104,9 +93,24 @@ class SudutJarakDialog(QtWidgets.QDialog, FORM_CLASS):
                 self.input_jarak.setEnabled(True)
                 self.reset.setEnabled(True)
                 self.check_garis.setEnabled(True)
+
+                #Mengecheck apakah layer point sudah di buat sebelumnya
+                if self.pertamaPoint:
+                    #Membuat layer titik
+                    self.layerTitik = self.buat_layer("Plot Titik","Point")
+                    self.pertamaPoint = False
+
                 self.buat_titik()
                 self.pertamaPlot = False
             else:
+                #Mengecheck apakah layer garis sudah di buat sebelumnya
+                if self.pertamaLine:
+                    #Mengecheck apakah checkbox check baris sudah di centang oleh user atau belum
+                    if self.check_garis.isChecked():
+                        #Membuat layer garis
+                        self.layerGaris = self.buat_layer("Plot Garis","LineString")
+                        self.pertamaLine = False
+                        
                 self.hitung_azimuth_jarak()
 
         except Exception as e:
