@@ -110,32 +110,31 @@ class SudutJarakDialog(QtWidgets.QDialog, FORM_CLASS):
                         #Membuat layer garis
                         self.layerGaris = self.buat_layer("Plot Garis","LineString")
                         self.pertamaLine = False
-                        
+
                 self.hitung_azimuth_jarak()
 
         except Exception as e:
-            iface.messageBar().pushMessage("Error","anda salah memasukkan input", level=Qgis.Critical,duration=3)
+            iface.messageBar().pushMessage("Error","anda salah memasukkan input", level=Qgis.Warning,duration=3)
 
     def buat_layer(self ,namaLayer,type):
         #untuk buat layers
         layer = QgsVectorLayer(f"{type}?crs=EPSG:32749",namaLayer, "memory")
         QgsProject.instance().addMapLayer(layer)
         if type == "Point":
-            self.Tambah_field(layer,"id","Int")
+            self.Tambah_field(layer,"FID","Int")
+            self.Tambah_field(layer,"X","Double")
+            self.Tambah_field(layer,"Y","Double")
         else :
-            self.Tambah_field(layer,"id","Int")
-            self.Tambah_field(layer,"Length","float")
+            self.Tambah_field(layer,"FID","Int")
+            self.Tambah_field(layer,"Length","Double")
         return layer
 
     def Tambah_field(self,layer,namaLayer,typeData):
-        layer.dataProvider().addAttributes([QgsField(namaLayer,self.Tipe_data(typeData))])
+        if typeData=="Int":
+            layer.dataProvider().addAttributes([QgsField(namaLayer,QVariant.Int)])
+        elif typeData=="Double":
+            layer.dataProvider().addAttributes([QgsField(namaLayer,QVariant.Double,'double', 10, 3)])
         layer.updateFields()
-
-    def Tipe_data(self,typeData):
-        if typeData == "Int":
-            return QVariant.Int
-        elif typeData == "float":
-            return QVariant.String
         
     def hitung_azimuth_jarak(self):
         try:
@@ -157,7 +156,7 @@ class SudutJarakDialog(QtWidgets.QDialog, FORM_CLASS):
                 
             self.buat_titik()
         except Exception as e:
-            iface.messageBar().pushMessage("Error","anda salah memasukkan input", level=Qgis.Critical,duration=3)
+            iface.messageBar().pushMessage("Error","anda salah memasukkan input", level=Qgis.Warning,duration=3)
 
     def buat_garis(self,x,y):
         # membuat garis pada layer
@@ -189,6 +188,8 @@ class SudutJarakDialog(QtWidgets.QDialog, FORM_CLASS):
 
         self.layerTitik.startEditing()
         self.layerTitik.changeAttributeValue(self.idTitik,0,self.idTitik)
+        self.layerTitik.changeAttributeValue(self.idTitik,1,self.x )
+        self.layerTitik.changeAttributeValue(self.idTitik,2,self.y )
         self.layerTitik.commitChanges()
         self.idTitik = self.idTitik+1
 
