@@ -27,8 +27,10 @@ import os
 
 from qgis.PyQt import uic
 from qgis.PyQt import QtWidgets
-from qgis.core import QgsVectorLayer, QgsProject, QgsFeature, QgsGeometry,QgsPointXY
+from qgis.core import QgsVectorLayer, QgsProject, QgsFeature, QgsGeometry,QgsPointXY,QgsField,Qgis
 from qgis.utils import iface
+from PyQt5.QtCore import QVariant
+from PyQt5.QtWidgets import QPushButton
 
 from math import *
 # This loads your .ui file so that PyQt can populate your plugin with the elements from Qt Designer
@@ -46,36 +48,91 @@ class SudutJarakDialog(QtWidgets.QDialog, FORM_CLASS):
         # #widgets-and-dialogs-with-auto-connect
         self.setupUi(self)
         self.iface = iface
-        self.layerTitik = self.buat_layer("Plot Titik","Point")
-        self.layerGaris = self.buat_layer("Plot Garis","LineString")
+        self.layerTitik = ""
+        self.layerGaris = ""
         self.proyeksi = "32749"
         self.x = ""
         self.y = ""
-        self.pertama = True
+        self.idTitik = 1
+        self.idJarak = 1
+        self.pertamaPoint = True
+        self.pertamaLine = True
+        self.pertamaPlot = True
+        self.check_garis.setEnabled(False)
+        self.input_az.setEnabled(False)
+        self.input_jarak.setEnabled(False)
+        self.reset.setEnabled(False)
         self.plot.clicked.connect(self.gambar_plot)
+        self.reset.clicked.connect(self.reset_plot)
         
+    def reset_plot(self):
+        self.pertamaPlot = True
+        self.reset.setEnabled(False)
+        self.input_x.setEnabled(True)
+        self.input_y.setEnabled(True)
+        self.input_az.setEnabled(False)
+        self.input_jarak.setEnabled(False)
+        self.check_garis.setEnabled(False)
+    
     def gambar_plot(self):
         """ Lakukan sesuatu ketika tombol ditekan """
         # memanggil isi dari Line Edit pada kolom X dan
         # menyimpannya pada variabel self.nilai_x
         # sekaligus mengkonversinya menjadi angka
+
+        if self.pertamaPoint:
+            self.layerTitik = self.buat_layer("Plot Titik","Point")
+            self.pertamaPoint = False
+
+        if self.pertamaLine:
+            if self.check_garis.isChecked():
+                self.layerGaris = self.buat_layer("Plot Garis","LineString")
+                self.pertamaLine = False
+
+        # widget = iface.messageBar().createMessage("Missing Layers", "Show Me")
+        # iface.messageBar().pushWidget(widget, Qgis.Warning)
+
         try:
             # cetak isi nilai X
-            if self.pertama:
-                self.pertama = False
+            # Mengcheck apakah plot pertama dijalankan atau tidak
+            if self.pertamaPlot:
                 self.x = float(self.input_x.text())
                 self.y = float(self.input_y.text())
+                self.input_x.setEnabled(False)
+                self.input_y.setEnabled(False)
+                self.input_az.setEnabled(True)
+                self.input_jarak.setEnabled(True)
+                self.reset.setEnabled(True)
+                self.check_garis.setEnabled(True)
                 self.buat_titik()
-            self.hitung_azimuth_jarak()
+                self.pertamaPlot = False
+            else:
+                self.hitung_azimuth_jarak()
+
         except Exception as e:
-            print(e)
+            iface.messageBar().pushMessage("Error","anda salah memasukkan input", level=Qgis.Critical,duration=3)
 
     def buat_layer(self ,namaLayer,type):
         #untuk buat layers
         layer = QgsVectorLayer(f"{type}?crs=EPSG:32749",namaLayer, "memory")
         QgsProject.instance().addMapLayer(layer)
+        if type == "Point":
+            self.Tambah_field(layer,"id","Int")
+        else :
+            self.Tambah_field(layer,"id","Int")
+            self.Tambah_field(layer,"Length","float")
         return layer
-    
+
+    def Tambah_field(self,layer,namaLayer,typeData):
+        layer.dataProvider().addAttributes([QgsField(namaLayer,self.Tipe_data(typeData))])
+        layer.updateFields()
+
+    def Tipe_data(self,typeData):
+        if typeData == "Int":
+            return QVariant.Int
+        elif typeData == "float":
+            return QVariant.String
+        
     def hitung_azimuth_jarak(self):
         try:
             #ini untuk mendapatkan nilai azimut(az) dan jarak(jarak)
@@ -90,10 +147,13 @@ class SudutJarakDialog(QtWidgets.QDialog, FORM_CLASS):
             #Menghitung nilai koordinat
             self.x = self.x + jarak*math.sin(az * math.pi/180)
             self.y = self.y + jarak*math.cos(az * math.pi/180)
+    
+            if self.check_garis.isChecked():
+                self.buat_garis(x,y)
+                
             self.buat_titik()
-            self.buat_garis(x,y)
         except Exception as e:
-            print(e)
+            iface.messageBar().pushMessage("Error","anda salah memasukkan input", level=Qgis.Critical,duration=3)
 
     def buat_garis(self,x,y):
         # membuat garis pada layer
@@ -101,6 +161,15 @@ class SudutJarakDialog(QtWidgets.QDialog, FORM_CLASS):
         featureGaris.setGeometry(QgsGeometry.fromPolylineXY([QgsPointXY(x,y),QgsPointXY(self.x, self.y)]))
         self.layerGaris.dataProvider().addFeatures([featureGaris])
         self.layerGaris.updateExtents()
+
+        self.layerGaris.startEditing()
+        self.layerGaris.changeAttributeValue(self.idJarak,0,self.idJarak)
+        self.layerGaris.changeAttributeValue(self.idJarak,1,int(self.input_jarak.text()))
+        self.layerGaris.commitChanges()
+
+        self.idJarak = self.idJarak + 1
+
+        self.iface.actionZoomToLayer().trigger()
     
     def buat_titik(self):
         """ buat titik di koordinat masukan """
@@ -113,6 +182,11 @@ class SudutJarakDialog(QtWidgets.QDialog, FORM_CLASS):
         # menambahkan fitur pada layer
         self.layerTitik.dataProvider().addFeatures([feature])
         self.layerTitik.updateExtents()
+
+        self.layerTitik.startEditing()
+        self.layerTitik.changeAttributeValue(self.idTitik,0,self.idTitik)
+        self.layerTitik.commitChanges()
+        self.idTitik = self.idTitik+1
 
         self.iface.actionZoomToLayer().trigger()
 
