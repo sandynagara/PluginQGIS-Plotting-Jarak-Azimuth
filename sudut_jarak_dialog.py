@@ -25,12 +25,14 @@
 import math
 import os
 
+from qgis.PyQt.QtGui import QIcon, QColor
 from qgis.PyQt import uic
 from qgis.PyQt import QtWidgets
-from qgis.core import QgsVectorLayer, QgsProject, QgsFeature, QgsGeometry,QgsPointXY,QgsField,Qgis
+from qgis.PyQt.QtWidgets import QTableWidgetItem, QDialog, QApplication, QMenu
+from qgis.core import QgsVectorLayer, QgsProject, QgsFeature, QgsGeometry,QgsPointXY,QgsField,Qgis,QgsSettings
 from qgis.utils import iface
-from PyQt5.QtCore import QVariant
-from PyQt5.QtWidgets import QPushButton
+from PyQt5.QtCore import QVariant,QSettings,QByteArray,QCoreApplication
+
 
 from math import *
 # This loads your .ui file so that PyQt can populate your plugin with the elements from Qt Designer
@@ -48,11 +50,8 @@ class SudutJarakDialog(QtWidgets.QDialog, FORM_CLASS):
         # #widgets-and-dialogs-with-auto-connect
         self.setupUi(self)
         self.iface = iface
-        self.layerTitik = ""
-        self.layerGaris = ""
+        self.measureDialog = GeodesicMeasureDialog(self.iface, parent)
         self.proyeksi = "32749"
-        self.x = ""
-        self.y = ""
         self.idTitik = 1
         self.idJarak = 1
         self.pertamaPoint = True
@@ -98,6 +97,7 @@ class SudutJarakDialog(QtWidgets.QDialog, FORM_CLASS):
                 if self.pertamaPoint:
                     #Membuat layer titik
                     self.layerTitik = self.buat_layer("Plot Titik","Point")
+                    self.measureDialog.show()
                     self.pertamaPoint = False
 
                 self.buat_titik()
@@ -114,6 +114,7 @@ class SudutJarakDialog(QtWidgets.QDialog, FORM_CLASS):
                 self.hitung_azimuth_jarak()
 
         except Exception as e:
+            print(e)
             iface.messageBar().pushMessage("Error","anda salah memasukkan input", level=Qgis.Warning,duration=3)
 
     def buat_layer(self ,namaLayer,type):
@@ -176,12 +177,11 @@ class SudutJarakDialog(QtWidgets.QDialog, FORM_CLASS):
     
     def buat_titik(self):
         """ buat titik di koordinat masukan """
-        # membuat layer pada memory
-        # anggap bahwa pengguna hanya di sekitar yogya (zona EPSG:32749)
         # memberi geometri pada fitur baru
         # Memberi fitur titik
         feature = QgsFeature()
         feature.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(self.x, self.y)))
+        self.measureDialog.insertParams(self.idTitik,self.x,self.y)
         # menambahkan fitur pada layer
         self.layerTitik.dataProvider().addFeatures([feature])
         self.layerTitik.updateExtents()
@@ -195,4 +195,35 @@ class SudutJarakDialog(QtWidgets.QDialog, FORM_CLASS):
 
         self.iface.actionZoomToLayer().trigger()
 
+FORM_CLASS2, _ = uic.loadUiType(os.path.join(
+    os.path.dirname(__file__), 'XandYDialog.ui'))
+
+class GeodesicMeasureDialog(QDialog, FORM_CLASS2):
+    def __init__(self, iface, parent):
+        super(GeodesicMeasureDialog, self).__init__(parent)
+        self.setupUi(self)
+        self.iface = iface
+        self.canvas = iface.mapCanvas()
+
+        self.tableWidget.setColumnCount(2)
+        self.tableWidget.setSortingEnabled(False)
+        self.tableWidget.setHorizontalHeaderLabels(["X", "Y"])
+        
+        self.capturedPoints = []
+        self.distances = []
+        self.activeMeasuring = True
+        self.lastMotionPt = None
+        self.currentDistance = 0.0
+
+    def tr(self,string):
+        return QCoreApplication.translate('@default', string)
+
+    def insertParams(self, position, X, Y):
+        if position > self.tableWidget.rowCount():
+            self.tableWidget.insertRow(position - 1)
+        item = QTableWidgetItem('{:.4f}'.format(X))
+        self.tableWidget.setItem(position - 1, 0, item)
+        item = QTableWidgetItem('{:.4f}'.format(Y))
+        self.tableWidget.setItem(position - 1, 1, item)
+    
 
