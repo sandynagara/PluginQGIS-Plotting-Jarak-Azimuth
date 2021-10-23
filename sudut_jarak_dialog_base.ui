@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>339</width>
-    <height>185</height>
+    <width>403</width>
+    <height>236</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -20,6 +20,9 @@
       <layout class="QHBoxLayout" name="horizontalLayout_4">
        <item>
         <layout class="QVBoxLayout" name="verticalLayout_3">
+         <item>
+          <widget class="QgsProjectionSelectionWidget" name="projection"/>
+         </item>
          <item>
           <widget class="QLabel" name="label">
            <property name="text">
@@ -200,6 +203,13 @@
    </item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>QgsProjectionSelectionWidget</class>
+   <extends>QWidget</extends>
+   <header>qgsprojectionselectionwidget.h</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

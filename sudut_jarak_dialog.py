@@ -25,21 +25,23 @@
 import math
 import os
 
-from qgis.PyQt.QtGui import QIcon, QColor
+import processing, os, subprocess, time
 from qgis.PyQt import uic
 from qgis.PyQt import QtWidgets
-from qgis.PyQt.QtWidgets import QTableWidgetItem, QDialog, QApplication, QMenu
+from qgis.PyQt.QtWidgets import QTableWidgetItem, QDialog
 from qgis.core import QgsVectorLayer, QgsProject, QgsFeature, QgsGeometry,QgsPointXY,QgsField,Qgis,QgsSettings
 from qgis.utils import iface
-from PyQt5.QtCore import QVariant,QSettings,QByteArray,QCoreApplication
-
+from PyQt5.QtCore import QVariant,QCoreApplication
+from qgis.gui import QgsEncodingFileDialog
 
 from math import *
+
 # This loads your .ui file so that PyQt can populate your plugin with the elements from Qt Designer
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'sudut_jarak_dialog_base.ui'))
 
 class SudutJarakDialog(QtWidgets.QDialog, FORM_CLASS):
+
     def __init__(self, parent=None):
         """Constructor."""
         super(SudutJarakDialog, self).__init__(parent)
@@ -50,7 +52,8 @@ class SudutJarakDialog(QtWidgets.QDialog, FORM_CLASS):
         # #widgets-and-dialogs-with-auto-connect
         self.setupUi(self)
         self.iface = iface
-        self.measureDialog = GeodesicMeasureDialog(self.iface, parent)
+        self.encoding = None
+        self.measureDialog = DialogXandY(self.iface, parent)
         self.proyeksi = "32749"
         self.idTitik = 1
         self.idJarak = 1
@@ -58,6 +61,7 @@ class SudutJarakDialog(QtWidgets.QDialog, FORM_CLASS):
         self.pertamaLine = True
         self.pertamaPlot = True
         self.check_garis.setEnabled(False)
+        self.projection.crsChanged.connect(self.set_crs)
         self.input_az.setEnabled(False)
         self.input_jarak.setEnabled(False)
         self.reset.setEnabled(False)
@@ -72,7 +76,6 @@ class SudutJarakDialog(QtWidgets.QDialog, FORM_CLASS):
         self.input_az.setEnabled(False)
         self.input_jarak.setEnabled(False)
         self.check_garis.setEnabled(False)
-
     
     def gambar_plot(self):
         """ Lakukan sesuatu ketika tombol ditekan """
@@ -86,6 +89,10 @@ class SudutJarakDialog(QtWidgets.QDialog, FORM_CLASS):
             if self.pertamaPlot:
                 self.x = float(self.input_x.text())
                 self.y = float(self.input_y.text())
+
+                if (self.x > 9000000):
+                    raise Exception('Nilai koordinat X dan Y terbalik')
+
                 self.input_x.setEnabled(False)
                 self.input_y.setEnabled(False)
                 self.input_az.setEnabled(True)
@@ -103,10 +110,10 @@ class SudutJarakDialog(QtWidgets.QDialog, FORM_CLASS):
                 self.buat_titik()
                 self.pertamaPlot = False
             else:
-                #Mengecheck apakah layer garis sudah di buat sebelumnya
-                if self.pertamaLine:
-                    #Mengecheck apakah checkbox check baris sudah di centang oleh user atau belum
-                    if self.check_garis.isChecked():
+                 #Mengecheck apakah checkbox check baris sudah di centang oleh user atau belum
+                if self.check_garis.isChecked():
+                    #Mengecheck apakah layer garis sudah di buat sebelumnya
+                    if self.pertamaLine:
                         #Membuat layer garis
                         self.layerGaris = self.buat_layer("Plot Garis","LineString")
                         self.pertamaLine = False
@@ -116,21 +123,51 @@ class SudutJarakDialog(QtWidgets.QDialog, FORM_CLASS):
         except Exception as e:
             print(e)
             iface.messageBar().pushMessage("Error","anda salah memasukkan input", level=Qgis.Warning,duration=3)
+    
+    
+    def set_crs(self):
+        self._currentcrs = self.projection.crs().authid()
+        self._currentcrs2 = self.projection.crs().mapUnits()
+        print(self._currentcrs2)
+    # Fitur Tidak terlalu dibutuhkan
+    # def output(self):
+    #     """ open save layer dialog """
+    #     settings = QgsSettings()
+    #     dirName = settings.value("/UI/lastShapefileDir")
+    #     encode = settings.value("/UI/encoding")
+    #     fileDialog = QgsEncodingFileDialog(self, "Output shape file", dirName,
+    #                                        "Shape file (*.shp)", encode)
+    #     fileDialog.setDefaultSuffix("shp")
+    #     fileDialog.setFileMode(QtWidgets.QFileDialog.AnyFile)
+    #     fileDialog.setAcceptMode(QtWidgets.QFileDialog.AcceptSave)
+    #     #fileDialog.setConfirmOverwrite(True)
+    #     if not fileDialog.exec_() == QtWidgets.QDialog.Accepted:
+    #         return
+    #     files = fileDialog.selectedFiles()
+    #     print(fileDialog)
+    #     self.browserLine.setText(files[0])
+    #     self.outputFile = files[0]
+    #     self.encoding = fileDialog.encoding()
 
     def buat_layer(self ,namaLayer,type):
         #untuk buat layers
-        layer = QgsVectorLayer(f"{type}?crs=EPSG:32749",namaLayer, "memory")
+        layer = QgsVectorLayer(f"{type}?crs={self._currentcrs}",namaLayer, "memory")
+        #MEnambahkan layer ke dalam peta
         QgsProject.instance().addMapLayer(layer)
+
+        #MEnambahkan Field ke dalam layer berdasarkan jenis layer
         if type == "Point":
             self.Tambah_field(layer,"FID","Int")
             self.Tambah_field(layer,"X","Double")
             self.Tambah_field(layer,"Y","Double")
-        else :
+        elif type == "LineString":
             self.Tambah_field(layer,"FID","Int")
             self.Tambah_field(layer,"Length","Double")
+
         return layer
 
     def Tambah_field(self,layer,namaLayer,typeData):
+        #Mengatur jenis attribute berdasarkan tipe data
         if typeData=="Int":
             layer.dataProvider().addAttributes([QgsField(namaLayer,QVariant.Int)])
         elif typeData=="Double":
@@ -156,16 +193,21 @@ class SudutJarakDialog(QtWidgets.QDialog, FORM_CLASS):
                 self.buat_garis(x,y)
                 
             self.buat_titik()
+
         except Exception as e:
+            #Memberikan warning ketika user memasukkan inpu yang salah
             iface.messageBar().pushMessage("Error","anda salah memasukkan input", level=Qgis.Warning,duration=3)
 
     def buat_garis(self,x,y):
-        # membuat garis pada layer
+        # mendefinisikan featuer garis
         featureGaris = QgsFeature()
         featureGaris.setGeometry(QgsGeometry.fromPolylineXY([QgsPointXY(x,y),QgsPointXY(self.x, self.y)]))
+
+        #Menambahkan featuare garis ke dalam layer garis
         self.layerGaris.dataProvider().addFeatures([featureGaris])
         self.layerGaris.updateExtents()
 
+        #Mengedit atau menambahkan atribute ke feature yang baru saja di tambahkan
         self.layerGaris.startEditing()
         self.layerGaris.changeAttributeValue(self.idJarak,0,self.idJarak)
         self.layerGaris.changeAttributeValue(self.idJarak,1,int(self.input_jarak.text()))
@@ -177,7 +219,6 @@ class SudutJarakDialog(QtWidgets.QDialog, FORM_CLASS):
     
     def buat_titik(self):
         """ buat titik di koordinat masukan """
-        # memberi geometri pada fitur baru
         # Memberi fitur titik
         feature = QgsFeature()
         feature.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(self.x, self.y)))
@@ -195,14 +236,16 @@ class SudutJarakDialog(QtWidgets.QDialog, FORM_CLASS):
 
         self.iface.actionZoomToLayer().trigger()
 
+
 FORM_CLASS2, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'XandYDialog.ui'))
 
-class GeodesicMeasureDialog(QDialog, FORM_CLASS2):
+class DialogXandY(QDialog, FORM_CLASS2):
+
     def __init__(self, iface, parent):
-        super(GeodesicMeasureDialog, self).__init__(parent)
+        super(DialogXandY, self).__init__(parent)
         self.setupUi(self)
-        self.iface = iface
+        iface = iface
         self.canvas = iface.mapCanvas()
 
         self.tableWidget.setColumnCount(2)
@@ -225,5 +268,7 @@ class GeodesicMeasureDialog(QDialog, FORM_CLASS2):
         self.tableWidget.setItem(position - 1, 0, item)
         item = QTableWidgetItem('{:.4f}'.format(Y))
         self.tableWidget.setItem(position - 1, 1, item)
+    
+
     
 
