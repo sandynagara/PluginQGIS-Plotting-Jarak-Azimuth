@@ -104,6 +104,7 @@ class SudutJarakDialog(QtWidgets.QDialog, FORM_CLASS):
                     self.layerTitik = self.buat_layer("Plot Titik","Point")
                     self.measureDialog.show()
                     self.pertamaPoint = False
+                    self.projection.setEnabled(False)
 
                 self.buat_titik()
                 self.pertamaPlot = False
@@ -127,8 +128,8 @@ class SudutJarakDialog(QtWidgets.QDialog, FORM_CLASS):
         self._currentcrs = self.projection.crs()
         print(self._currentcrs.isGeographic())
         if self._currentcrs.isGeographic():
-            self.label_x.setText("Lintang")
-            self.label_y.setText("Bujur")
+            self.label_x.setText("Bujur")
+            self.label_y.setText("Lintang")
         else:
             self.label_x.setText("X")
             self.label_y.setText("Y")
@@ -184,23 +185,24 @@ class SudutJarakDialog(QtWidgets.QDialog, FORM_CLASS):
             #ini untuk mendapatkan nilai azimut(az) dan jarak(jarak)
             az = float(self.input_az.text())
             jarak = float(self.input_jarak.text())
-
-            self.batas_lengkung(jarak)
+            #Mengcheck apakah jarak yang dimasukkan lebih dari 30 kilometer
+            assert jarak < 30863888.9, iface.messageBar().pushMessage("Error","Jarak yang anda masukkan melebihi batas kelengkungan bumi", level=Qgis.Warning,duration=4)
             #untuk memasukkan nilai x dan y awal atau sebelumnya
             x = self.x
             y = self.y
 
-            transformasi = self.transformasi(self._currentcrs,"EPSG:3395",x,y)
-            #untuk mengcheck apakah nilai azimuth lebih dari 360 derajat
+            # Melakuan transformasi koordinat ke world mercator
+            transformasi = self.transformasi(self._currentcrs.authid(),"EPSG:32749",x,y)
+            # untuk mengcheck apakah nilai azimuth lebih dari 360 derajat
             while az > 360:
                 az = az - 360
             #Menghitung nilai koordinat
             transX = transformasi.x() + jarak*math.sin(az * math.pi/180)
             transY = transformasi.y() + jarak*math.cos(az * math.pi/180)
-            print(type(transformasi.x()),transY)
 
-            transformasi = self.transformasi("EPSG:3395",self._currentcrs,transformasi.x(),transformasi.y())
-            print(type(transformasi.x()),transY)
+            # Melakuan transformasi koordinat ke sistem koordinat yang telah ditentukan pengguna
+            transformasi = self.transformasi("EPSG:32749",self._currentcrs.authid(),transX,transY)
+            
             self.x = transformasi.x()
             self.y = transformasi.y()
     
@@ -211,14 +213,11 @@ class SudutJarakDialog(QtWidgets.QDialog, FORM_CLASS):
 
         except Exception as e:
             print(e)
-            iface.messageBar().pushMessage("Error","anda salah memasukkan input", level=Qgis.Warning,duration=3)
-
-    def batas_lengkung(self,jarak):
-        assert jarak < 30863888.9, "Batas kelengkungan bumi = 30.8638889'"
-        print('Tidak boleh melebihi batas kelengkungan bumi')
-        # membuat batas jarak maksimal = 30.8638889
+            iface.messageBar().pushMessage("Error","anda salah memasukkan input", level=Qgis.Warning,duration=1)
+        
     
-    def transformasi(self,crsForm,EPSGDest,x,y):
+    def transformasi(self,EPSGFrom,EPSGDest,x,y):
+        crsForm = QgsCoordinateReferenceSystem(EPSGFrom)
         crsDest = QgsCoordinateReferenceSystem(EPSGDest)
         context = QgsProject.instance()
         xform = QgsCoordinateTransform(crsForm, crsDest, context)
