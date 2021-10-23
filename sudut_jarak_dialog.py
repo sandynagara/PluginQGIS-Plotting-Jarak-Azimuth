@@ -29,7 +29,7 @@ import processing, os, subprocess, time
 from qgis.PyQt import uic
 from qgis.PyQt import QtWidgets
 from qgis.PyQt.QtWidgets import QTableWidgetItem, QDialog
-from qgis.core import QgsVectorLayer, QgsProject, QgsFeature, QgsGeometry,QgsPointXY,QgsField,Qgis,QgsSettings
+from qgis.core import QgsVectorLayer, QgsProject, QgsFeature, QgsGeometry,QgsPointXY,QgsField,Qgis,QgsCoordinateReferenceSystem,QgsCoordinateTransform
 from qgis.utils import iface
 from PyQt5.QtCore import QVariant,QCoreApplication
 from qgis.gui import QgsEncodingFileDialog
@@ -62,6 +62,7 @@ class SudutJarakDialog(QtWidgets.QDialog, FORM_CLASS):
         self.pertamaPlot = True
         self.check_garis.setEnabled(False)
         self.projection.crsChanged.connect(self.set_crs)
+        # self.projection.setCrs()
         self.input_az.setEnabled(False)
         self.input_jarak.setEnabled(False)
         self.reset.setEnabled(False)
@@ -89,10 +90,7 @@ class SudutJarakDialog(QtWidgets.QDialog, FORM_CLASS):
             if self.pertamaPlot:
                 self.x = float(self.input_x.text())
                 self.y = float(self.input_y.text())
-
-                if (self.x > 9000000):
-                    raise Exception('Nilai koordinat X dan Y terbalik')
-
+               
                 self.input_x.setEnabled(False)
                 self.input_y.setEnabled(False)
                 self.input_az.setEnabled(True)
@@ -126,9 +124,16 @@ class SudutJarakDialog(QtWidgets.QDialog, FORM_CLASS):
     
     
     def set_crs(self):
-        self._currentcrs = self.projection.crs().authid()
-        self._currentcrs2 = self.projection.crs().mapUnits()
-        print(self._currentcrs2)
+        self._currentcrs = self.projection.crs()
+        print(self._currentcrs.isGeographic())
+        if self._currentcrs.isGeographic():
+            self.label_x.setText("Lintang")
+            self.label_y.setText("Bujur")
+        else:
+            self.label_x.setText("X")
+            self.label_y.setText("Y")
+        transformasi = self.transformasi("EPSG:3395","EPSG:4326",1,1)
+        print(transformasi.x(),transformasi.y())
     # Fitur Tidak terlalu dibutuhkan
     # def output(self):
     #     """ open save layer dialog """
@@ -151,11 +156,11 @@ class SudutJarakDialog(QtWidgets.QDialog, FORM_CLASS):
 
     def buat_layer(self ,namaLayer,type):
         #untuk buat layers
-        layer = QgsVectorLayer(f"{type}?crs={self._currentcrs}",namaLayer, "memory")
+        layer = QgsVectorLayer(f"{type}?crs={self._currentcrs.authid()}",namaLayer, "memory")
         #MEnambahkan layer ke dalam peta
         QgsProject.instance().addMapLayer(layer)
 
-        #MEnambahkan Field ke dalam layer berdasarkan jenis layer
+        #Menambahkan Field ke dalam layer berdasarkan jenis layer
         if type == "Point":
             self.Tambah_field(layer,"FID","Int")
             self.Tambah_field(layer,"X","Double")
@@ -179,15 +184,25 @@ class SudutJarakDialog(QtWidgets.QDialog, FORM_CLASS):
             #ini untuk mendapatkan nilai azimut(az) dan jarak(jarak)
             az = float(self.input_az.text())
             jarak = float(self.input_jarak.text())
+
+            self.batas_lengkung(jarak)
             #untuk memasukkan nilai x dan y awal atau sebelumnya
             x = self.x
             y = self.y
+
+            transformasi = self.transformasi(self._currentcrs,"EPSG:3395",x,y)
             #untuk mengcheck apakah nilai azimuth lebih dari 360 derajat
             while az > 360:
                 az = az - 360
             #Menghitung nilai koordinat
-            self.x = self.x + jarak*math.sin(az * math.pi/180)
-            self.y = self.y + jarak*math.cos(az * math.pi/180)
+            transX = transformasi.x() + jarak*math.sin(az * math.pi/180)
+            transY = transformasi.y() + jarak*math.cos(az * math.pi/180)
+            print(type(transformasi.x()),transY)
+
+            transformasi = self.transformasi("EPSG:3395",self._currentcrs,transformasi.x(),transformasi.y())
+            print(type(transformasi.x()),transY)
+            self.x = transformasi.x()
+            self.y = transformasi.y()
     
             if self.check_garis.isChecked():
                 self.buat_garis(x,y)
@@ -195,8 +210,20 @@ class SudutJarakDialog(QtWidgets.QDialog, FORM_CLASS):
             self.buat_titik()
 
         except Exception as e:
-            #Memberikan warning ketika user memasukkan inpu yang salah
+            print(e)
             iface.messageBar().pushMessage("Error","anda salah memasukkan input", level=Qgis.Warning,duration=3)
+
+    def batas_lengkung(self,jarak):
+        assert jarak < 30863888.9, "Batas kelengkungan bumi = 30.8638889'"
+        print('Tidak boleh melebihi batas kelengkungan bumi')
+        # membuat batas jarak maksimal = 30.8638889
+    
+    def transformasi(self,crsForm,EPSGDest,x,y):
+        crsDest = QgsCoordinateReferenceSystem(EPSGDest)
+        context = QgsProject.instance()
+        xform = QgsCoordinateTransform(crsForm, crsDest, context)
+        transfpoint=xform.transform(QgsPointXY(x,y))
+        return transfpoint
 
     def buat_garis(self,x,y):
         # mendefinisikan featuer garis
