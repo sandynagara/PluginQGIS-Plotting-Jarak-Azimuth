@@ -13,8 +13,8 @@ Fungsi dari plugin ini antara lain:
 
 ## Kontribusi 
 Plugin ini dibangun oleh :
-* Fungsi penghitung titik kedua berdasarkan input azimuth dan jarak (Sandy Setyanagara ,Fauzan Maulana)
-* Pengguna memasukkan huruf dan bukan angka untuk kolom jarak maupun azimuth (Sandy Setyanagara ,Fauzan Maulana)
+* Fungsi penghitung titik kedua berdasarkan input azimuth dan jarak (Sandy Setyanagara ,Fauzan Maulana ,Mellin)
+* Pengguna memasukkan huruf dan bukan angka untuk kolom jarak maupun azimuth (Sandy Setyanagara ,Fauzan Maulana ,Mellin,Farhan Aji Kumara)
 * Pengguna menginginkan untuk merubah sendiri sistem proyeksi dari layer yang dibentuk (Sandy Setyanagara ,Fauzan Maulana)
 * Azimuth yang dimasukkan lebih dari 360 derajat (Sandy Setyanagara ,Fauzan Maulana)
 * Jarak yang dimasukkan melebihi batas kelengkungan bumi, sehingga tidak sesuai dengan rumus yang digunakan (Farhan Aji Kumara)
@@ -26,7 +26,7 @@ Plugin ini dibangun oleh :
 * Penambahan attribute pada layer (Sandy Setyanagara)
 
 ## Lisensi
-Lisensi aplikasi GeoKKP-GIS berada di bawah naungan **GNU-AGPLv3** sebagai berikut:
+Lisensi plugin ini berada di bawah naungan **GNU-AGPLv3** sebagai berikut:
 
 ```
 GNU AGPLv3
