@@ -123,7 +123,8 @@ class SudutJarakDialog(QtWidgets.QDialog, FORM_CLASS):
         except Exception as e:
             print(e)
             iface.messageBar().pushMessage("Error","anda salah memasukkan input", level=Qgis.Warning,duration=3)
-    
+        
+        #Mengatur crs
     def set_crs(self):
         #Mendapatkan crs yang dipilih oleh user
         self._currentcrs = self.projection.crs()
@@ -137,6 +138,7 @@ class SudutJarakDialog(QtWidgets.QDialog, FORM_CLASS):
         #Mengatur dialog berdasarkan crs yang digunakan
         self.measureDialog.setCrs(self._currentcrs)
 
+        #Membuat layer
     def buat_layer(self ,namaLayer,type):
         #untuk buat layers
         layer = QgsVectorLayer(f"{type}?crs={self._currentcrs.authid()}",namaLayer, "memory")
@@ -200,7 +202,8 @@ class SudutJarakDialog(QtWidgets.QDialog, FORM_CLASS):
         except Exception as e:
             print(e)
             iface.messageBar().pushMessage("Error","anda salah memasukkan input", level=Qgis.Warning,duration=1)
-            
+        
+        #Untuk fungsi transformasi    
     def transformasi(self,EPSGFrom,EPSGDest,x,y):
         #Mendefinisiakan sistem koordinat source dan destination
         crsForm = QgsCoordinateReferenceSystem(EPSGFrom)
@@ -209,7 +212,8 @@ class SudutJarakDialog(QtWidgets.QDialog, FORM_CLASS):
         xform = QgsCoordinateTransform(crsForm, crsDest, context)
         transfpoint=xform.transform(QgsPointXY(x,y))
         return transfpoint
-
+       
+        #Membuat garis
     def buat_garis(self,x,y):
         # mendefinisikan featuer garis
         featureGaris = QgsFeature()
@@ -228,7 +232,8 @@ class SudutJarakDialog(QtWidgets.QDialog, FORM_CLASS):
         self.idJarak = self.idJarak + 1
 
         self.iface.actionZoomToLayer().trigger()
-    
+        
+        #Membuat titik
     def buat_titik(self):
         """ buat titik di koordinat masukan """
         # Memberi fitur titik
@@ -252,7 +257,8 @@ FORM_CLASS2, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'XandYDialog.ui'))
 
 class DialogXandY(QDialog, FORM_CLASS2):
-
+ 
+        #Inisialisasi awal
     def __init__(self, iface, parent):
         super(DialogXandY, self).__init__(parent)
         self.setupUi(self)
@@ -264,13 +270,15 @@ class DialogXandY(QDialog, FORM_CLASS2):
 
     def tr(self,string):
         return QCoreApplication.translate('@default', string)
-
+     
+        #Mengatur crs
     def setCrs(self,crs):
         if crs.isGeographic():
             self.tableWidget.setHorizontalHeaderLabels(["Bujur", "Lintang"])
         else:
             self.tableWidget.setHorizontalHeaderLabels(["X", "Y"])
-
+          
+        #Untuk mengedit dialog
     def insertParams(self, position, X, Y):
         if position > self.tableWidget.rowCount():
             self.tableWidget.insertRow(position - 1)
