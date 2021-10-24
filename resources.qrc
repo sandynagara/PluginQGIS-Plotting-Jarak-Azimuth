@@ -1,5 +1,5 @@
 <RCC>
-    <qresource prefix="/plugins/sudut_jarak" >
+    <qresource prefix="/plugins/Sudut_jarak" >
         <file>icon.png</file>
     </qresource>
 </RCC>

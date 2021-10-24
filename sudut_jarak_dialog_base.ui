@@ -21,6 +21,13 @@
        <item>
         <layout class="QVBoxLayout" name="verticalLayout_3">
          <item>
+          <widget class="QLabel" name="label_2">
+           <property name="text">
+            <string>Projection</string>
+           </property>
+          </widget>
+         </item>
+         <item>
           <widget class="QgsProjectionSelectionWidget" name="projection"/>
          </item>
          <item>

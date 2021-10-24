@@ -25,14 +25,12 @@
 import math
 import os
 
-import processing, os, subprocess, time
 from qgis.PyQt import uic
 from qgis.PyQt import QtWidgets
 from qgis.PyQt.QtWidgets import QTableWidgetItem, QDialog
 from qgis.core import QgsVectorLayer, QgsProject, QgsFeature, QgsGeometry,QgsPointXY,QgsField,Qgis,QgsCoordinateReferenceSystem,QgsCoordinateTransform
 from qgis.utils import iface
 from PyQt5.QtCore import QVariant,QCoreApplication
-from qgis.gui import QgsEncodingFileDialog
 
 from math import *
 
@@ -62,7 +60,7 @@ class SudutJarakDialog(QtWidgets.QDialog, FORM_CLASS):
         self.pertamaPlot = True
         self.check_garis.setEnabled(False)
         self.projection.crsChanged.connect(self.set_crs)
-        # self.projection.setCrs()
+        self.projection.setCrs(QgsCoordinateReferenceSystem("EPSG:32749"))
         self.input_az.setEnabled(False)
         self.input_jarak.setEnabled(False)
         self.reset.setEnabled(False)
@@ -90,6 +88,9 @@ class SudutJarakDialog(QtWidgets.QDialog, FORM_CLASS):
             if self.pertamaPlot:
                 self.x = float(self.input_x.text())
                 self.y = float(self.input_y.text())
+
+                if self._currentcrs.isGeographic():
+                    assert self.y < 90 , iface.messageBar().pushMessage("Error","Lintang yang anda masukkan lebih dari 90 derajat", level=Qgis.Warning,duration=4)
                
                 self.input_x.setEnabled(False)
                 self.input_y.setEnabled(False)
@@ -123,42 +124,23 @@ class SudutJarakDialog(QtWidgets.QDialog, FORM_CLASS):
             print(e)
             iface.messageBar().pushMessage("Error","anda salah memasukkan input", level=Qgis.Warning,duration=3)
     
-    
     def set_crs(self):
+        #Mendapatkan crs yang dipilih oleh user
         self._currentcrs = self.projection.crs()
-        print(self._currentcrs.isGeographic())
+        #Mengecheck apakah crs yang dipilih oleh user termasuk geographic coordinate atau tidak
         if self._currentcrs.isGeographic():
             self.label_x.setText("Bujur")
             self.label_y.setText("Lintang")
         else:
             self.label_x.setText("X")
             self.label_y.setText("Y")
-        transformasi = self.transformasi("EPSG:3395","EPSG:4326",1,1)
-        print(transformasi.x(),transformasi.y())
-    # Fitur Tidak terlalu dibutuhkan
-    # def output(self):
-    #     """ open save layer dialog """
-    #     settings = QgsSettings()
-    #     dirName = settings.value("/UI/lastShapefileDir")
-    #     encode = settings.value("/UI/encoding")
-    #     fileDialog = QgsEncodingFileDialog(self, "Output shape file", dirName,
-    #                                        "Shape file (*.shp)", encode)
-    #     fileDialog.setDefaultSuffix("shp")
-    #     fileDialog.setFileMode(QtWidgets.QFileDialog.AnyFile)
-    #     fileDialog.setAcceptMode(QtWidgets.QFileDialog.AcceptSave)
-    #     #fileDialog.setConfirmOverwrite(True)
-    #     if not fileDialog.exec_() == QtWidgets.QDialog.Accepted:
-    #         return
-    #     files = fileDialog.selectedFiles()
-    #     print(fileDialog)
-    #     self.browserLine.setText(files[0])
-    #     self.outputFile = files[0]
-    #     self.encoding = fileDialog.encoding()
+        #Mengatur dialog berdasarkan crs yang digunakan
+        self.measureDialog.setCrs(self._currentcrs)
 
     def buat_layer(self ,namaLayer,type):
         #untuk buat layers
         layer = QgsVectorLayer(f"{type}?crs={self._currentcrs.authid()}",namaLayer, "memory")
-        #MEnambahkan layer ke dalam peta
+        #Menambahkan layer ke dalam peta
         QgsProject.instance().addMapLayer(layer)
 
         #Menambahkan Field ke dalam layer berdasarkan jenis layer
@@ -182,9 +164,12 @@ class SudutJarakDialog(QtWidgets.QDialog, FORM_CLASS):
         
     def hitung_azimuth_jarak(self):
         try:
+
             #ini untuk mendapatkan nilai azimut(az) dan jarak(jarak)
             az = float(self.input_az.text())
             jarak = float(self.input_jarak.text())
+
+            
             #Mengcheck apakah jarak yang dimasukkan lebih dari 30 kilometer
             assert jarak < 30863888.9, iface.messageBar().pushMessage("Error","Jarak yang anda masukkan melebihi batas kelengkungan bumi", level=Qgis.Warning,duration=4)
             #untuk memasukkan nilai x dan y awal atau sebelumnya
@@ -193,6 +178,7 @@ class SudutJarakDialog(QtWidgets.QDialog, FORM_CLASS):
 
             # Melakuan transformasi koordinat ke world mercator
             transformasi = self.transformasi(self._currentcrs.authid(),"EPSG:32749",x,y)
+            
             # untuk mengcheck apakah nilai azimuth lebih dari 360 derajat
             while az > 360:
                 az = az - 360
@@ -214,9 +200,9 @@ class SudutJarakDialog(QtWidgets.QDialog, FORM_CLASS):
         except Exception as e:
             print(e)
             iface.messageBar().pushMessage("Error","anda salah memasukkan input", level=Qgis.Warning,duration=1)
-        
-    
+            
     def transformasi(self,EPSGFrom,EPSGDest,x,y):
+        #Mendefinisiakan sistem koordinat source dan destination
         crsForm = QgsCoordinateReferenceSystem(EPSGFrom)
         crsDest = QgsCoordinateReferenceSystem(EPSGDest)
         context = QgsProject.instance()
@@ -262,7 +248,6 @@ class SudutJarakDialog(QtWidgets.QDialog, FORM_CLASS):
 
         self.iface.actionZoomToLayer().trigger()
 
-
 FORM_CLASS2, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'XandYDialog.ui'))
 
@@ -276,16 +261,15 @@ class DialogXandY(QDialog, FORM_CLASS2):
 
         self.tableWidget.setColumnCount(2)
         self.tableWidget.setSortingEnabled(False)
-        self.tableWidget.setHorizontalHeaderLabels(["X", "Y"])
-        
-        self.capturedPoints = []
-        self.distances = []
-        self.activeMeasuring = True
-        self.lastMotionPt = None
-        self.currentDistance = 0.0
 
     def tr(self,string):
         return QCoreApplication.translate('@default', string)
+
+    def setCrs(self,crs):
+        if crs.isGeographic():
+            self.tableWidget.setHorizontalHeaderLabels(["Bujur", "Lintang"])
+        else:
+            self.tableWidget.setHorizontalHeaderLabels(["X", "Y"])
 
     def insertParams(self, position, X, Y):
         if position > self.tableWidget.rowCount():
