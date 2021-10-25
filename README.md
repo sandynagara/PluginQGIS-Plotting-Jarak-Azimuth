@@ -13,12 +13,12 @@ Fungsi dari plugin ini antara lain:
 
 ## Kontribusi 
 Plugin ini dibangun oleh :
-* Fungsi penghitung titik kedua berdasarkan input azimuth dan jarak (Sandy Setyanagara ,Fauzan Maulana ,Mellin)
-* Pengguna memasukkan huruf dan bukan angka untuk kolom jarak maupun azimuth (Sandy Setyanagara ,Fauzan Maulana ,Mellin,Farhan Aji Kumara)
+* Fungsi penghitung titik kedua berdasarkan input azimuth dan jarak (Sandy Setyanagara ,Fauzan Maulana ,Dwi Larasari Mellin)
+* Pengguna memasukkan huruf dan bukan angka untuk kolom jarak maupun azimuth (Sandy Setyanagara ,Fauzan Maulana ,Dwi Larasari Mellin ,Farhan Aji Kumara)
 * Pengguna menginginkan untuk merubah sendiri sistem proyeksi dari layer yang dibentuk (Sandy Setyanagara ,Fauzan Maulana)
 * Azimuth yang dimasukkan lebih dari 360 derajat (Sandy Setyanagara ,Fauzan Maulana)
 * Jarak yang dimasukkan melebihi batas kelengkungan bumi, sehingga tidak sesuai dengan rumus yang digunakan (Farhan Aji Kumara)
-* Input pengguna terbalik antara X dan Y (Mellin)
+* Input pengguna terbalik antara X dan Y (Dwi Larasari Mellin)
 * Pengguna ingin agar plugin dapat digunakan untuk plotting Azimuth dan Jarak secara terus menerus, sehingga titik awal akan terupdate dengan titik terakhir yang diperoleh dari hasil hitungan sebelumnya pada saat tombol Plot! ditekan (Sandy Setyanagara)
 * Pengguna ingin menggambarkan garis dari titik awal ke titik selanjutnya secara otomatis (Sandy Setyanagara)
 * Pembuatan tombol reset (Sandy Setyanagara)
